@@ -1,0 +1,73 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+  airflow-webserver:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ''
+      PIPELINE_PROJECT_ROOT: /opt/project
+      PIPELINE_PYTHON_BIN: python
+      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
+      SNOWFLAKE_USER: ${SNOWFLAKE_USER}
+      SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
+      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE}
+      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE}
+      SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA}
+      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE}
+      CAP_STORAGE_MODE: ${CAP_STORAGE_MODE}
+      CAP_DATA_ROOT: /opt/project/data
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ../pyspark_jobs:/opt/airflow/pyspark_jobs
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ..:/opt/project
+    ports:
+      - "8080:8080"
+    command: bash -c "pip install --no-cache-dir snowflake-connector-python pandas snowflake-snowpark-python pyspark && airflow db migrate && airflow users create --username admin --password admin --firstname Air --lastname Flow --role Admin --email admin@example.com || true && airflow webserver"
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - postgres
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ''
+      PIPELINE_PROJECT_ROOT: /opt/project
+      PIPELINE_PYTHON_BIN: python
+      SNOWFLAKE_ACCOUNT: ${SNOWFLAKE_ACCOUNT}
+      SNOWFLAKE_USER: ${SNOWFLAKE_USER}
+      SNOWFLAKE_PASSWORD: ${SNOWFLAKE_PASSWORD}
+      SNOWFLAKE_WAREHOUSE: ${SNOWFLAKE_WAREHOUSE}
+      SNOWFLAKE_DATABASE: ${SNOWFLAKE_DATABASE}
+      SNOWFLAKE_SCHEMA: ${SNOWFLAKE_SCHEMA}
+      SNOWFLAKE_ROLE: ${SNOWFLAKE_ROLE}
+      CAP_STORAGE_MODE: ${CAP_STORAGE_MODE}
+      CAP_DATA_ROOT: /opt/project/data
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ../pyspark_jobs:/opt/airflow/pyspark_jobs
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ..:/opt/project
+    command: scheduler
+
+volumes:
+  postgres-db-volume:

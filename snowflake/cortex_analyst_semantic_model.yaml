@@ -1,0 +1,117 @@
+name: cancer_analytics_semantic_model
+description: Semantic model for oncology pathway analytics across encounter operations and billing.
+
+tables:
+  - name: V_ENCOUNTER_OVERVIEW
+    base_table:
+      database: CANCER_ANALYTICS_DB
+      schema: SEMANTIC
+      table: V_ENCOUNTER_OVERVIEW
+    dimensions:
+      - name: encounter_id
+        expr: ENCOUNTER_ID
+        data_type: text
+      - name: encounter_date
+        expr: ENCOUNTER_DATE
+        data_type: date
+      - name: treatment
+        expr: TREATMENT
+        data_type: text
+      - name: drug_regimen
+        expr: DRUG_REGIMEN
+        data_type: text
+      - name: outcome
+        expr: OUTCOME
+        data_type: text
+      - name: insurance
+        expr: INSURANCE
+        data_type: text
+      - name: provider_id
+        expr: PROVIDER_ID
+        data_type: text
+      - name: provider_name
+        expr: PROVIDER_NAME
+        data_type: text
+      - name: provider_specialty
+        expr: PROVIDER_SPECIALTY
+        data_type: text
+      - name: payment_status
+        expr: PAYMENT_STATUS
+        data_type: text
+      - name: patient_gender
+        expr: GENDER
+        data_type: text
+      - name: cancer_type
+        expr: CANCER_TYPE
+        data_type: text
+      - name: cancer_stage
+        expr: STAGE
+        data_type: text
+    measures:
+      - name: encounter_count
+        expr: COUNT(DISTINCT ENCOUNTER_ID)
+        data_type: number
+      - name: total_billing_amount
+        expr: SUM(BILLING_AMOUNT)
+        data_type: number
+      - name: avg_billing_amount
+        expr: AVG(BILLING_AMOUNT)
+        data_type: number
+  - name: V_PROVIDER_PERFORMANCE
+    base_table:
+      database: CANCER_ANALYTICS_DB
+      schema: SEMANTIC
+      table: V_PROVIDER_PERFORMANCE
+    dimensions:
+      - name: provider_id
+        expr: PROVIDER_ID
+        data_type: text
+      - name: provider_name
+        expr: PROVIDER_NAME
+        data_type: text
+      - name: specialty
+        expr: SPECIALTY
+        data_type: text
+      - name: location
+        expr: LOCATION
+        data_type: text
+    measures:
+      - name: encounter_count
+        expr: SUM(ENCOUNTER_COUNT)
+        data_type: number
+      - name: patient_count
+        expr: SUM(PATIENT_COUNT)
+        data_type: number
+      - name: avg_treatment_response_score
+        expr: AVG(AVG_TREATMENT_RESPONSE_SCORE)
+        data_type: number
+      - name: total_billing_amount
+        expr: SUM(TOTAL_BILLING_AMOUNT)
+        data_type: number
+
+verified_queries:
+  - name: monthly_encounters
+    question: How many oncology encounters happened by month?
+    sql: |
+      SELECT DATE_TRUNC('MONTH', ENCOUNTER_DATE) AS MONTH_START,
+             COUNT(DISTINCT ENCOUNTER_ID) AS ENCOUNTER_COUNT
+      FROM CANCER_ANALYTICS_DB.SEMANTIC.V_ENCOUNTER_OVERVIEW
+      GROUP BY 1
+      ORDER BY 1;
+  - name: stage_revenue
+    question: What revenue is associated with each cancer stage?
+    sql: |
+      SELECT STAGE,
+             SUM(BILLING_AMOUNT) AS TOTAL_REVENUE
+      FROM CANCER_ANALYTICS_DB.SEMANTIC.V_ENCOUNTER_OVERVIEW
+      GROUP BY 1
+      ORDER BY 2 DESC;
+  - name: provider_performance
+    question: Which providers handled the most encounters and revenue?
+    sql: |
+      SELECT PROVIDER_NAME,
+             SPECIALTY,
+             ENCOUNTER_COUNT,
+             TOTAL_BILLING_AMOUNT
+      FROM CANCER_ANALYTICS_DB.SEMANTIC.V_PROVIDER_PERFORMANCE
+      ORDER BY ENCOUNTER_COUNT DESC, TOTAL_BILLING_AMOUNT DESC;

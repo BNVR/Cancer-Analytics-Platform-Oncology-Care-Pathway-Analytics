@@ -1,0 +1,6 @@
+pyspark
+pandas
+plotly
+streamlit
+snowflake-connector-python
+snowflake-snowpark-python
