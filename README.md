@@ -86,6 +86,32 @@ The dashboard uses:
 
 If Snowflake credentials are missing, it falls back to local CSV files for preview.
 
+## Screenshots
+
+### Project Architecture
+
+![Project Architecture](docs/images/Project-Architecture.png)
+
+### Dashboard Overview
+
+![Dashboard Overview](docs/images/dashboard-overview.png)
+
+### Clinical Overview
+
+![Clinical Overview](docs/images/clinical-overview.png)
+
+### Provider Analytics
+
+![Provider Analytics](docs/images/dashboard-provider.png)
+
+### Airflow DAG Success
+
+![Airflow DAG Success](docs/images/airflow-dag-success.png)
+
+### Cortex Analyst Query
+
+![Cortex Analyst Query](docs/images/cortex-analyst-query.png)
+
 ## Notes
 
 - This project does not require AWS.
