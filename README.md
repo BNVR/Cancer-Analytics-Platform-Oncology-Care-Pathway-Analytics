@@ -93,8 +93,8 @@ pip install -r requirements.txt
 ### 3. Configure Snowflake Environment Variables
 
 ```powershell
-$env:SNOWFLAKE_ACCOUNT="BGCFXOC-KZ47840"
-$env:SNOWFLAKE_USER="BNVRAMANA"
+$env:SNOWFLAKE_ACCOUNT="xxxxxxxxxx"
+$env:SNOWFLAKE_USER="NVRAMANA"
 $env:SNOWFLAKE_PASSWORD="<your_password>"
 $env:SNOWFLAKE_WAREHOUSE="CANCER_ANALYTICS_WH"
 $env:SNOWFLAKE_DATABASE="CANCER_ANALYTICS_DB"
