@@ -1,90 +1,197 @@
-# Cancer Analytics Platform
+# Cancer Analytics Platform – Oncology Care Pathway Analytics
 
-Oncology pathway analytics project using PySpark, Airflow, Snowflake internal stage storage, Snowpark/SQL processing, and a Streamlit reporting layer.
+## Overview
+
+The Cancer Analytics Platform is a cloud-based data engineering and analytics solution designed to provide operational and financial insights across the oncology care lifecycle. It processes healthcare datasets such as patients, providers, cancer catalog records, treatment encounters, and billing into a structured Snowflake data warehouse for reporting and analytics.
+
+## Key Features
+
+- End-to-end pipeline using **PySpark**, **Snowflake internal stage**, **Snowpark**, and **Apache Airflow**
+- **Snowflake data warehouse** with star-schema style fact and dimension modeling
+- **SCD Type 2** implementation for patient and cancer catalog history tracking
+- **Streamlit dashboards** for operational, clinical, financial, provider, and governance analytics
+- Natural language querying through **Cortex Analyst**
+- Data quality checks, reject handling structure, and audit logging
+- Governance controls through masking policies and role-based access control
 
 ## Architecture
 
-- `airflow/`: orchestration DAGs for medallion processing and Snowflake warehouse promotion
-- `pyspark_jobs/`: ingestion, cleansing, dimensional modeling, preview utilities
-- `snowflake/`: warehouse setup SQL, RAW -> DW load SQL, semantic model
-- `utils/`: local CSV to Snowflake loaders
-- `dashboards/`: Streamlit dashboard reading Snowflake semantic views
-- `data/raw/`: seed source extracts
+### Layers
 
-## Local pipeline flow
+1. **Ingestion Layer**
+   - Source CSV data is stored in `data/raw`
+   - PySpark jobs support local medallion-style preprocessing
+   - Source files are uploaded into a Snowflake internal stage for warehouse ingestion
 
-1. Store source CSV extracts in `data/raw`.
-2. Run local PySpark ETL to create `data/bronze`, `data/silver`, and data quality outputs.
-3. Run [project_2.sql](/d:/Projects/cancer-analytics-project/snowflake/project_2.sql) to create Snowflake `RAW`, `DW`, `SEMANTIC`, and `OPS` schemas plus an internal stage.
-4. Upload the source extracts into the Snowflake internal stage and load `RAW` with [load_stage_to_snowflake.py](/d:/Projects/cancer-analytics-project/utils/load_stage_to_snowflake.py).
-5. Run [snowpark_transform.py](/d:/Projects/cancer-analytics-project/snowflake/snowpark_transform.py) or [load_dw_from_raw.sql](/d:/Projects/cancer-analytics-project/snowflake/load_dw_from_raw.sql) to build SCD2 dimensions, facts, provider bridge records, semantic views, and audit records.
-6. Export curated Snowflake outputs into a local `data/gold` folder with [export_gold_from_snowflake.py](/d:/Projects/cancer-analytics-project/utils/export_gold_from_snowflake.py).
-7. Run Streamlit against Snowflake semantic views.
+2. **Orchestration Layer**
+   - Apache Airflow schedules and manages ETL workflows using DAGs
+   - Airflow coordinates Snowflake RAW loading, Snowpark transforms, and gold export
 
-## PySpark
+3. **Processing Layer**
+   - Snowpark and SQL transformations build the warehouse model
+   - Fact and dimension tables are populated in Snowflake
+   - SCD Type 2 logic is applied to tracked dimensions
 
-Default local mode:
+4. **Data Warehouse Layer**
+   - Snowflake schemas:
+     - `RAW`
+     - `DW`
+     - `SEMANTIC`
+     - `OPS`
 
-```powershell
-$env:CAP_STORAGE_MODE="local"
-$env:CAP_DATA_ROOT="D:\Projects\cancer-analytics-project\data"
-python pyspark_jobs/raw_to_bronze.py
-python pyspark_jobs/bronze_to_silver.py
-python pyspark_jobs/silver_to_gold.py
+5. **Analytics Layer**
+   - Streamlit dashboards provide interactive reporting
+   - Cortex Analyst enables NL-to-SQL against the semantic layer
+
+## Tech Stack
+
+- PySpark
+- Apache Airflow
+- Snowflake
+- Snowpark
+- SQL
+- Streamlit
+- Plotly
+- Cortex Analyst
+
+## Project Structure
+
+```text
+cancer-analytics-project/
+|
+├── airflow/                # Airflow config, DAGs, Docker Compose
+├── dashboards/             # Streamlit app and dashboard data access
+├── data/
+│   └── raw/                # Raw CSV datasets
+├── docs/
+│   └── images/             # README screenshots
+├── pyspark_jobs/           # Local PySpark ETL scripts
+├── snowflake/              # Warehouse setup, SQL, Snowpark transform, semantic model
+├── utils/                  # Snowflake load/export utilities
+├── requirements.txt
+└── README.md
 ```
 
-## Snowflake
+## Setup Instructions
 
-Setup the warehouse objects:
+### 1. Clone Repository
+
+```powershell
+git clone https://github.com/BNVR/Cancer-Analytics-Platform-Oncology-Care-Pathway-Analytics.git
+cd Cancer-Analytics-Platform-Oncology-Care-Pathway-Analytics
+```
+
+### 2. Create and Activate Virtual Environment
+
+```powershell
+python -m venv airflow_venv
+.\airflow_venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 3. Configure Snowflake Environment Variables
+
+```powershell
+$env:SNOWFLAKE_ACCOUNT="BGCFXOC-KZ47840"
+$env:SNOWFLAKE_USER="BNVRAMANA"
+$env:SNOWFLAKE_PASSWORD="<your_password>"
+$env:SNOWFLAKE_WAREHOUSE="CANCER_ANALYTICS_WH"
+$env:SNOWFLAKE_DATABASE="CANCER_ANALYTICS_DB"
+$env:SNOWFLAKE_SCHEMA="RAW"
+$env:SNOWFLAKE_ROLE="ACCOUNTADMIN"
+$env:CAP_STORAGE_MODE="local"
+```
+
+### 4. Create Snowflake Warehouse Objects
+
+Run:
 
 ```sql
 -- run snowflake/project_2.sql
 ```
 
-Upload staged source files and load RAW:
+### 5. Load RAW Data into Snowflake
 
 ```powershell
 python utils/load_stage_to_snowflake.py
 ```
 
-Promote RAW into DW/SEMANTIC/OPS with Snowpark:
+### 6. Run Transformations
+
+Using Snowpark:
 
 ```powershell
 python snowflake/snowpark_transform.py
 ```
 
-Or with SQL:
+Or using SQL:
 
 ```sql
 -- run snowflake/load_dw_from_raw.sql
 ```
 
-Export a local gold layer from Snowflake:
+### 7. Export Gold Layer
 
 ```powershell
 python utils/export_gold_from_snowflake.py
 ```
 
-The Cortex Analyst semantic definition is in [cortex_analyst_semantic_model.yaml](/d:/Projects/cancer-analytics-project/snowflake/cortex_analyst_semantic_model.yaml).
-Use the verified prompts in that file to test Cortex Analyst against:
-- `SEMANTIC.V_ENCOUNTER_OVERVIEW`
-- `SEMANTIC.V_PROVIDER_PERFORMANCE`
-
-## Dashboard
-
-Set Snowflake environment variables and run:
+### 8. Run Streamlit Dashboard
 
 ```powershell
 streamlit run dashboards/app.py
 ```
 
-The dashboard uses:
+### 9. Run Airflow
+
+```powershell
+cd airflow
+docker compose up -d
+```
+
+Access Airflow UI:
+
+```text
+http://127.0.0.1:8080
+```
+
+Username: `admin`  
+Password: `admin`
+
+## Data Model
+
+### Core Warehouse Tables
+
+- `DW.DIM_PATIENTS`
+- `DW.DIM_CANCER_CATALOG`
+- `DW.DIM_PROVIDERS`
+- `DW.DIM_DATE`
+- `DW.FACT_ENCOUNTERS`
+- `DW.BRIDGE_ENCOUNTER_PROVIDER`
+
+### Semantic Views
+
 - `SEMANTIC.V_ENCOUNTER_OVERVIEW`
 - `SEMANTIC.V_FINANCIAL_ANALYTICS`
 - `SEMANTIC.V_PROVIDER_PERFORMANCE`
-- `OPS.PIPELINE_AUDIT`
 
-If Snowflake credentials are missing, it falls back to local CSV files for preview.
+## Data Governance
+
+- Data masking for patient identifiers and names
+- Role-Based Access Control (RBAC)
+- Audit logging in `OPS.PIPELINE_AUDIT`
+- Reject tracking structure in `OPS.REJECTED_RECORDS`
+- Data validation checks in pipeline outputs
+
+## Use Cases
+
+- Monitor oncology encounter trends
+- Analyze treatment mix and treatment response
+- Track billing and financial performance
+- Study cancer stage distribution
+- Review provider encounter and response metrics
+- Explore semantic queries through Cortex Analyst
 
 ## Screenshots
 
@@ -115,6 +222,18 @@ If Snowflake credentials are missing, it falls back to local CSV files for previ
 ## Notes
 
 - This project does not require AWS.
-- The Snowflake internal stage is the cloud storage landing layer for source CSV extracts.
-- Provider performance is modeled through deterministic encounter-to-provider assignment in the warehouse because the source encounter feed does not include `provider_id`.
-- Snowflake handles warehouse-side modeling, semantic views, masking policies, access control, and Cortex Analyst semantic metadata.
+- Snowflake internal stage acts as the cloud storage landing layer for source CSV extracts.
+- Provider performance is modeled through deterministic encounter-to-provider assignment because the source encounter data does not include native `provider_id`.
+- Cortex Analyst is configured through `snowflake/cortex_analyst_semantic_model.yaml`.
+
+## Author
+
+**Bonthu Naga Venkata Ramana**  
+Aspiring Data Engineer | Snowflake | PySpark | Airflow | Streamlit
+
+## Project Highlights
+
+- Real-world healthcare analytics use case
+- End-to-end pipeline from ingestion to analytics
+- Snowflake-centered cloud analytics architecture
+- Live Airflow orchestration and Cortex Analyst demonstration
